@@ -205,6 +205,12 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Local development tools and Arch package output
+.tools/
+*.pkg.tar.zst
+/pkg/
+/srcpkg/
+
 # Ruff stuff:
 .ruff_cache/
 
