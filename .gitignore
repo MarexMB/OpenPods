@@ -210,6 +210,7 @@ tempCodeRunnerFile.py
 *.pkg.tar.zst
 /pkg/
 /srcpkg/
+/.package/
 
 # Ruff stuff:
 .ruff_cache/

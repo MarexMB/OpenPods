@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenPods
+Comment=Monitor paired Bluetooth devices and available AirPods battery data
+Exec=openpods
+Icon=io.github.MarexMB.OpenPods
+Terminal=false
+Categories=Utility;GTK;
+Keywords=AirPods;Bluetooth;Battery;
+StartupNotify=true
