@@ -5,6 +5,11 @@ pub mod battery;
 pub mod model;
 pub mod settings;
 pub mod notifications;
+pub mod privacy;
+#[cfg(target_os = "linux")]
+pub mod daemon;
+#[cfg(target_os = "linux")]
+pub mod diagnostics;
 #[cfg(target_os = "linux")]
 pub mod bluetooth;
 
