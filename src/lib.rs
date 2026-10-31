@@ -10,6 +10,8 @@ pub mod privacy;
 pub mod daemon;
 #[cfg(target_os = "linux")]
 pub mod diagnostics;
+#[cfg(all(target_os = "linux", feature = "gui"))]
+pub mod ui;
 #[cfg(target_os = "linux")]
 pub mod bluetooth;
 
