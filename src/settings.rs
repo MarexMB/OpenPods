@@ -28,11 +28,14 @@ impl Settings {
     }
 
     pub fn load(path: &Path) -> io::Result<Self> {
-        let bytes = match std::fs::read(path) {
-            Ok(bytes) => bytes,
+        use std::io::Read;
+        let file = match std::fs::File::open(path) {
+            Ok(file) => file,
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(Self::default()),
             Err(e) => return Err(e),
         };
+        let mut bytes = Vec::new();
+        file.take(16_385).read_to_end(&mut bytes)?;
         if bytes.len() > 16_384 { return Err(io::Error::new(io::ErrorKind::InvalidData, "Settings too large")); }
         let settings: Self = serde_json::from_slice(&bytes).map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid settings JSON"))?;
         settings.validate()?;

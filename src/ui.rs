@@ -40,7 +40,10 @@ fn build_window(app: &adw::Application, runtime: &tokio::runtime::Handle) {
     header.pack_end(&settings_button);
     outer.append(&header);
     let body = gtk::Box::new(gtk::Orientation::Vertical, 16);
-    for side in [&body] { side.set_margin_top(24); side.set_margin_bottom(24); side.set_margin_start(24); side.set_margin_end(24); }
+    body.set_margin_top(24);
+    body.set_margin_bottom(24);
+    body.set_margin_start(24);
+    body.set_margin_end(24);
     let title = label("OpenPods");
     title.add_css_class("title-1");
     body.append(&title);
@@ -127,13 +130,21 @@ fn build_window(app: &adw::Application, runtime: &tokio::runtime::Handle) {
     let action_state = state.clone();
     let action_selector = selector.clone();
     let action_runtime = runtime.clone();
+    let busy = Rc::new(std::cell::Cell::new(false));
+    let action_stopped = stopped.clone();
     connect.connect_clicked(move |button| {
+        if busy.get() || action_stopped.get() { return; }
         let Some(device) = action_state.borrow().devices.get(action_selector.selected() as usize).cloned() else { return; };
+        busy.set(true);
         button.set_sensitive(false);
         result.set_text("Requesting BlueZ connection change…");
         let (send, receive) = async_channel::bounded(1);
         action_runtime.spawn(async move { let _ = send.send(crate::bluetooth::set_connected(&device.id, !device.connected).await).await; });
         let result = result.clone();
+        let busy = busy.clone();
+        let button = button.clone();
+        let action_state = action_state.clone();
+        let action_stopped = action_stopped.clone();
         // State changes, not method return values, update the connection display.
         glib::spawn_future_local(async move {
             match receive.recv().await {
@@ -141,6 +152,8 @@ fn build_window(app: &adw::Application, runtime: &tokio::runtime::Handle) {
                 Ok(Err(error)) => result.set_text(error.message()),
                 Err(_) => result.set_text("Connection worker stopped"),
             }
+            busy.set(false);
+            button.set_sensitive(!action_stopped.get() && action_state.borrow().availability == Availability::Ready);
         });
     });
 

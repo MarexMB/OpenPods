@@ -194,4 +194,10 @@ mod tests {
         let (_, stop) = watch::channel(true);
         tokio::time::timeout(Duration::from_millis(200), monitor(output, stop)).await.unwrap();
     }
+
+    #[test]
+    fn malformed_battery_never_becomes_a_reading() {
+        let mut state = State::default();
+        assert!(state.snapshot(fixture(true, Some(255)), None, 0).devices[0].battery.aggregate.is_none());
+    }
 }
