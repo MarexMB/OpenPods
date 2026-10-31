@@ -1,0 +1,26 @@
+name: Rust and native Linux checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native build prerequisites (CI runner only)
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev pkg-config dbus-x11 desktop-file-utils
+      - run: rustup update stable --no-self-update
+      - run: rustup default stable
+      - run: rustup component add rustfmt clippy
+      - run: cargo fmt --check
+      - run: cargo test --all-features
+      - run: dbus-run-session -- cargo test --test bluez_bus -- --ignored
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: cargo build --release
+      - run: desktop-file-validate data/io.github.MarexMB.OpenPods.desktop
+  portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --no-default-features
+      - run: cargo clippy --no-default-features --all-targets -- -D warnings
