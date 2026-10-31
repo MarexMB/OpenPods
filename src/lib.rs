@@ -3,3 +3,9 @@ pub const APP_ID: &str = "io.github.MarexMB.OpenPods";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub mod battery;
 pub mod model;
+#[cfg(target_os = "linux")]
+pub mod bluetooth;
+
+pub fn now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs()
+}
