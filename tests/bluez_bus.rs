@@ -78,6 +78,20 @@ async fn object_manager_connection_events_and_clean_shutdown() {
     assert!(!bluetooth::snapshot().await.unwrap().devices[0].connected);
     service.object_server().remove::<Battery, _>(path).await.unwrap();
     assert!(bluetooth::snapshot().await.unwrap().devices[0].battery.aggregate.is_none());
+    service.release_name("org.bluez").await.unwrap();
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            if receiver.borrow_and_update().availability == Availability::ServiceUnavailable { break; }
+            receiver.changed().await.unwrap();
+        }
+    }).await.unwrap();
+    service.request_name("org.bluez").await.unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if receiver.borrow_and_update().availability == Availability::Ready { break; }
+            receiver.changed().await.unwrap();
+        }
+    }).await.unwrap();
     stop.send(true).unwrap();
     tokio::time::timeout(Duration::from_secs(1), task).await.unwrap().unwrap();
 }

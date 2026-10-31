@@ -45,7 +45,11 @@ fn classify(error: &zbus::Error) -> BackendError {
 }
 
 async fn bounded<T>(future: impl std::future::Future<Output = zbus::Result<T>>) -> Result<T, BackendError> {
-    tokio::time::timeout(TIMEOUT, future).await.map_err(|_| BackendError::Timeout)?.map_err(|e| classify(&e))
+    within(TIMEOUT, future).await
+}
+
+async fn within<T>(duration: Duration, future: impl std::future::Future<Output = zbus::Result<T>>) -> Result<T, BackendError> {
+    tokio::time::timeout(duration, future).await.map_err(|_| BackendError::Timeout)?.map_err(|e| classify(&e))
 }
 
 async fn connection() -> Result<Connection, BackendError> {
@@ -151,15 +155,15 @@ async fn cycle(output: &watch::Sender<Snapshot>) -> Result<(), BackendError> {
 /// Cancellation drops all streams and the system bus connection. No worker survives it.
 pub async fn monitor(output: watch::Sender<Snapshot>, mut stop: watch::Receiver<bool>) {
     let work = async {
-        let mut delay = 1;
+        let mut failures: u32 = 0;
         loop {
             let started = std::time::Instant::now();
             if let Err(error) = cycle(&output).await {
                 output.send_replace(Snapshot::unavailable(error.availability()));
             }
-            if started.elapsed() > Duration::from_secs(60) { delay = 1; }
-            tokio::time::sleep(Duration::from_secs(delay)).await;
-            delay = (delay * 2).min(30);
+            if started.elapsed() > Duration::from_secs(60) { failures = 0; }
+            tokio::time::sleep(crate::retry::delay(failures)).await;
+            failures = failures.saturating_add(1);
         }
     };
     tokio::select! { _ = work => {}, _ = async { while !*stop.borrow_and_update() { if stop.changed().await.is_err() { break; } } } => {} }
@@ -199,5 +203,13 @@ mod tests {
     fn malformed_battery_never_becomes_a_reading() {
         let mut state = State::default();
         assert!(state.snapshot(fixture(true, Some(255)), None, 0).devices[0].battery.aggregate.is_none());
+    }
+
+    #[tokio::test]
+    async fn stalled_and_failed_calls_return_typed_errors() {
+        let stalled = std::future::pending::<zbus::Result<()>>();
+        assert_eq!(within(Duration::from_millis(5), stalled).await, Err(BackendError::Timeout));
+        let failure = async { Err::<(), _>(zbus::Error::Failure("fixture detail must not be logged".into())) };
+        assert_eq!(within(Duration::from_secs(1), failure).await, Err(BackendError::Operation));
     }
 }

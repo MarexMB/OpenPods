@@ -6,6 +6,7 @@ pub mod model;
 pub mod settings;
 pub mod notifications;
 pub mod privacy;
+pub mod retry;
 #[cfg(target_os = "linux")]
 pub mod daemon;
 #[cfg(target_os = "linux")]
