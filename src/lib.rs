@@ -3,6 +3,8 @@ pub const APP_ID: &str = "io.github.MarexMB.OpenPods";
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub mod battery;
 pub mod model;
+pub mod settings;
+pub mod notifications;
 #[cfg(target_os = "linux")]
 pub mod bluetooth;
 
